@@ -104,24 +104,25 @@ namespace Xunit.Sdk
             if (list != null)
                 list.Sort((left, right) => string.Compare(left.AttributeData.AttributeType.Name, right.AttributeData.AttributeType.Name, StringComparison.Ordinal));
 
-            IEnumerable<IAttributeInfo> results = list ?? Enumerable.Empty<IAttributeInfo>();
-
             if (attributeUsage.Inherited && (attributeUsage.AllowMultiple || list == null))
             {
                 // Need to find the parent method, which may not necessarily be on the parent type
                 var baseMethod = GetParent(method);
+
                 if (baseMethod != null)
-                    results = results.Concat(
-                        GetCustomAttributes(baseMethod, attributeType, attributeUsage).Where(a =>
+                {
+                    var custAttrs = GetCustomAttributes(baseMethod, attributeType, attributeUsage);
+                    foreach (var a in custAttrs)
+                    {
+                        if (a is ReflectionAttributeInfo ra && ReflectionAttributeInfo.GetAttributeUsage(ra.Attribute.GetType()).Inherited)
                         {
-                            if (a is ReflectionAttributeInfo ra)
-                            {
-                                return ReflectionAttributeInfo.GetAttributeUsage(ra.Attribute.GetType()).Inherited;
-                            }
-                            return true;
-                        })
-                    );
+                            list.Add(ra);
+                        }
+                    }
+                }
             }
+
+            IEnumerable<IAttributeInfo> results = list ?? Enumerable.Empty<IAttributeInfo>();
 
             return results;
         }
